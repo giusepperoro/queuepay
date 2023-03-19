@@ -1,9 +1,11 @@
-package main
+package database
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"log"
 )
 
 type dataBase struct {
@@ -11,7 +13,7 @@ type dataBase struct {
 }
 
 type DbManager interface {
-	ChangeBalance(ctx context.Context, clientId int64, amount int64) bool
+	ChangeBalance(ctx context.Context, clientId int64, amount int64) (bool, error)
 }
 
 func New(ctx context.Context) (*dataBase, error) {
@@ -27,34 +29,26 @@ func New(ctx context.Context) (*dataBase, error) {
 	return &dataBase{conn: connection}, nil
 }
 
-func (d *dataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) bool {
+func (d *dataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) (bool, error) {
 	var balance, id int64
 	var query = "SELECT balance, client_id FROM accounts WHERE client_id = $1"
+
 	row := d.conn.QueryRow(ctx, query, clientId)
 	err := row.Scan(&balance, &id)
 	if err != nil {
-		log.Println(err)
-		return false
+		return false, fmt.Errorf("error in get client from database: %v", err)
 	}
 	if id != clientId {
-		log.Println("client does not exist")
-		return false
+		return false, errors.New("client does not exist")
 	}
 	if balance+amount < 0 {
-		log.Println("negative balance")
-		return false
+		return false, errors.New("negative balance")
 	}
 
 	query = "UPDATE accounts SET balance = balance + $1 WHERE client_id = $2"
-	d.conn.QueryRow(ctx, query, amount, clientId)
-	if err != nil {
-		log.Println(err)
-		return false
+	err = d.conn.QueryRow(ctx, query, amount, clientId).Scan()
+	if err != nil && err != pgx.ErrNoRows {
+		return false, fmt.Errorf("error update client data: %v", err)
 	}
-
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-	return true
+	return true, nil
 }

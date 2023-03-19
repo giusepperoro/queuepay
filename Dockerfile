@@ -21,7 +21,7 @@ RUN go mod download
 COPY . .
 
 # Build the application.
-RUN go build -o $PWD/bin/server $PWD
+RUN go build -o $PWD/bin/server $PWD/cmd
 
 
 
