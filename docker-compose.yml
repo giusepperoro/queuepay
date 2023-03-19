@@ -1,5 +1,11 @@
 version: "3.9"
 services:
+  redis:
+    image: redis:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6379:6379"
   server:
     container_name: API_server
     build:

@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/go-redis/redis"
 	"io"
 	"log"
 	"net/http"
@@ -16,11 +18,22 @@ type WithdrawalRequest struct {
 }
 
 type WithdrawalResponse struct {
-	status bool `json:"status"`
-	//err    string `json:"error,omitempty"`
+	status string `json:"status"`
 }
 
 func main() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+	if err != nil {
+		log.Println(err)
+		log.Fatal("redis connect error")
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	db, err := New(ctx)
@@ -28,11 +41,11 @@ func main() {
 		log.Println(err)
 		log.Fatal("database connect error")
 	}
-	http.HandleFunc("/charge", Withdrawal(db))
+	http.HandleFunc("/charge", Withdrawal(db, client))
 	http.ListenAndServe("0.0.0.0:80", nil)
 }
 
-func Withdrawal(db *dataBase) func(w http.ResponseWriter, r *http.Request) {
+func Withdrawal(db *dataBase, client *redis.Client) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var req WithdrawalRequest
@@ -48,14 +61,12 @@ func Withdrawal(db *dataBase) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		ctx := r.Context()
-		ok := db.ChangeBalance(ctx, req.id, req.amount)
+		client.LPush(string(req.id), req.amount)
+
 		response := WithdrawalResponse{
-			status: ok,
+			status: "transaction in que",
 		}
 		rawData, err := json.Marshal(response)
-		w.WriteHeader(http.StatusOK)
-
 		_, err = w.Write(rawData)
 		if err != nil {
 			log.Printf("unable to write data: %v", err)

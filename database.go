@@ -2,20 +2,21 @@ package main
 
 import (
 	"context"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 )
-import pgx "github.com/jackc/pgx/v4"
 
 type dataBase struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
+
 type DbManager interface {
 	ChangeBalance(ctx context.Context, clientId int64, amount int64) bool
 }
 
 func New(ctx context.Context) (*dataBase, error) {
 
-	connection, err := pgx.Connect(ctx, "postgres://postgres:postgres@database:5432/master")
+	connection, err := pgxpool.Connect(ctx, "postgres://postgres:postgres@database:5432/master")
 	if err != nil {
 		return nil, err
 	}

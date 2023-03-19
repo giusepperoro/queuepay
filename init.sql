@@ -7,6 +7,15 @@ CREATE TABLE IF NOT EXISTS accounts (
     PRIMARY KEY(client_id)
     );
 
+-- Creation of orders table
+CREATE TABLE IF NOT EXISTS orders (
+    client_id BIGINT NOT NULL,
+    amount int,
+    create_at timestamp NOT NULL,
+    looked_at timestamp,
+    status int
+);
+
 INSERT INTO accounts VALUES (1, 500);
 INSERT INTO accounts VALUES (2, 1500);
 INSERT INTO accounts VALUES (3, 3500);
