@@ -17,13 +17,6 @@ func main() {
 	//ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	//defer stop()
 
-	//db, err := database.New(ctx)
-	//if err != nil {
-	//	log.Println(err)
-	//	log.Fatal("database connect error")
-	//}
-	//_ = db
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("cannot create logger: %v", err)
@@ -40,9 +33,16 @@ func main() {
 		logger.Fatal("unable to get config file name from env", zap.Error(err))
 	}
 	fmt.Println("cfg:", cfg)
+	//db, err := database.New(ctx, cfg)
+	//if err != nil {
+	//	log.Println(err)
+	//	log.Fatal("database connect error")
+	//}
+	//_ = db
 
-	var handlerWithdrawal handler.HandleWithdrawal
-	http.HandleFunc("/charge", handlerWithdrawal.Withdrawal())
+	changeBalanceHandle := handler.NewChangeBalanceHandler(logger)
+
+	http.HandleFunc("/charge", changeBalanceHandle.HandleBalanceChange)
 	err = http.ListenAndServe(cfg.ServerAddressUrl, nil)
 	if err != nil {
 		log.Fatal("Server shutdown", err)

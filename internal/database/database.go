@@ -3,13 +3,14 @@ package database
 import (
 	"context"
 	"fmt"
+	"github.com/giusepperoro/queuepay.git/internal/config"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func New(ctx context.Context) (*dataBase, error) {
+func New(ctx context.Context, cfg config.ServiceConfiguration) (*dataBase, error) {
 
-	connection, err := pgxpool.Connect(ctx, "postgres://postgres:postgres@database:5432/master")
+	connection, err := pgxpool.Connect(ctx, cfg.PostgresConnectUrl)
 	if err != nil {
 		return nil, err
 	}
