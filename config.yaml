@@ -1,0 +1,1 @@
+postgresConnectUrl: postgres://postgres:postgres@database:5432/master

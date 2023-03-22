@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/giusepperoro/queuepay.git/internal/redis"
 	"io"
 	"log"
 	"net/http"
@@ -17,7 +16,11 @@ type WithdrawalResponse struct {
 	Status string `json:"status"`
 }
 
-func Withdrawal(q *redis.RedisQueue) func(w http.ResponseWriter, r *http.Request) {
+type HandleWithdrawal struct {
+	ForWorkers map[int64]struct{}
+}
+
+func (h *HandleWithdrawal) Withdrawal() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var req WithdrawalRequest
@@ -32,10 +35,11 @@ func Withdrawal(q *redis.RedisQueue) func(w http.ResponseWriter, r *http.Request
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = q.Set(req.Id, req.Amount)
 		response := WithdrawalResponse{
 			Status: "transaction in queue",
 		}
+		s := h.ForWorkers[req.Id]
+		log.Println(s)
 		if err != nil {
 			response.Status = "error adding transaction in queue"
 		}
