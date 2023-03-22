@@ -32,7 +32,7 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 		response.Status = "error adding transaction in queue"
 	}
 
-	h.addCLientInfo(req.Id)
+	h.addClientInfo(req.Id)
 	rawData, err := json.Marshal(response)
 	_, err = w.Write(rawData)
 	if err != nil {
@@ -40,6 +40,6 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 	}
 }
 
-func (h *changeBalanceHandler) addCLientInfo(clientId int64) {
+func (h *changeBalanceHandler) addClientInfo(clientId int64) {
 	h.clientsMap.Store(clientId, struct{}{})
 }

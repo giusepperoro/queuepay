@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/giusepperoro/queuepay.git/internal/database"
+	"github.com/giusepperoro/queuepay.git/internal/rabbit"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 
 	"go.uber.org/zap"
 
@@ -14,8 +19,8 @@ import (
 const configFileNameEnv = "CONFIG_FILE_NAME"
 
 func main() {
-	//ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	//defer stop()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -33,14 +38,18 @@ func main() {
 		logger.Fatal("unable to get config file name from env", zap.Error(err))
 	}
 	fmt.Println("cfg:", cfg)
-	//db, err := database.New(ctx, cfg)
-	//if err != nil {
-	//	log.Println(err)
-	//	log.Fatal("database connect error")
-	//}
-	//_ = db
+	db, err := database.New(ctx, cfg)
+	if err != nil {
+		log.Println(err)
+		log.Fatal("database connect error")
+	}
+	rbt, err := rabbit.ConnectRabbit(cfg)
+	if err != nil {
+		log.Println(err)
+		log.Fatal("rabbitMQ connect error")
+	}
 
-	changeBalanceHandle := handler.NewChangeBalanceHandler(logger)
+	changeBalanceHandle := handler.NewChangeBalanceHandler(logger, db, rbt)
 
 	http.HandleFunc("/charge", changeBalanceHandle.HandleBalanceChange)
 	err = http.ListenAndServe(cfg.ServerAddressUrl, nil)

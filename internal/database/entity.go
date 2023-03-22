@@ -5,8 +5,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-type dataBase struct {
-	conn *pgxpool.Pool
+type DataBase struct {
+	Conn *pgxpool.Pool
 }
 
 type DbManager interface {

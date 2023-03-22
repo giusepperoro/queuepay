@@ -8,8 +8,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func New(ctx context.Context, cfg config.ServiceConfiguration) (*dataBase, error) {
-
+func New(ctx context.Context, cfg config.ServiceConfiguration) (*DataBase, error) {
 	connection, err := pgxpool.Connect(ctx, cfg.PostgresConnectUrl)
 	if err != nil {
 		return nil, err
@@ -18,19 +17,19 @@ func New(ctx context.Context, cfg config.ServiceConfiguration) (*dataBase, error
 	if err != nil {
 		return nil, err
 	}
-	return &dataBase{conn: connection}, nil
+	return &DataBase{Conn: connection}, nil
 }
 
-func (d *dataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) (bool, error) {
+func (d *DataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) (bool, error) {
 	opts := pgx.TxOptions{
 		IsoLevel: "serializable",
 	}
-	err := d.conn.BeginTxFunc(ctx, opts,
+	err := d.Conn.BeginTxFunc(ctx, opts,
 		func(tx pgx.Tx) error {
 			var balance, id int64
 			var query = "SELECT balance, client_id FROM accounts WHERE client_id = $1 FOR UPDATE"
 
-			row := d.conn.QueryRow(ctx, query, clientId)
+			row := d.Conn.QueryRow(ctx, query, clientId)
 			err := row.Scan(&balance, &id)
 			if err != nil {
 				return fmt.Errorf("error in get client from database: %v", err)
@@ -43,7 +42,7 @@ func (d *dataBase) ChangeBalance(ctx context.Context, clientId int64, amount int
 			}
 
 			query = "UPDATE accounts SET balance = balance + $1 WHERE client_id = $2"
-			err = d.conn.QueryRow(ctx, query, amount, clientId).Scan()
+			err = d.Conn.QueryRow(ctx, query, amount, clientId).Scan()
 			if err != nil && err != pgx.ErrNoRows {
 				return fmt.Errorf("error update client data: %v", err)
 			}
