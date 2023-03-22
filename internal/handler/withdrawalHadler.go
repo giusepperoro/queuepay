@@ -7,19 +7,6 @@ import (
 	"net/http"
 )
 
-type WithdrawalRequest struct {
-	Id     int64 `json:"id"`
-	Amount int64 `json:"amount"`
-}
-
-type WithdrawalResponse struct {
-	Status string `json:"status"`
-}
-
-type HandleWithdrawal struct {
-	ForWorkers map[int64]struct{}
-}
-
 func (h *HandleWithdrawal) Withdrawal() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
