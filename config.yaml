@@ -1,1 +1,3 @@
-postgresConnectUrl: postgres://postgres:postgres@database:5432/master
+postgresConnectUrl: "postgres://postgres:postgres@database:5432/master"
+rabbitMQConnectUrl: "bla"
+serverAddressUrl: "0.0.0.0:80"
