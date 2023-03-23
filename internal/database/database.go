@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/giusepperoro/queuepay.git/internal/config"
+
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+
+	"github.com/giusepperoro/queuepay.git/internal/config"
 )
 
 func New(ctx context.Context, cfg config.ServiceConfiguration) (*DataBase, error) {
@@ -20,7 +22,7 @@ func New(ctx context.Context, cfg config.ServiceConfiguration) (*DataBase, error
 	return &DataBase{Conn: connection}, nil
 }
 
-func (d *DataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) (bool, error) {
+func (d *DataBase) ChangeBalance(ctx context.Context, clientId int64, amount int64) error {
 	opts := pgx.TxOptions{
 		IsoLevel: "serializable",
 	}
@@ -50,7 +52,8 @@ func (d *DataBase) ChangeBalance(ctx context.Context, clientId int64, amount int
 		},
 	)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+
+	return nil
 }

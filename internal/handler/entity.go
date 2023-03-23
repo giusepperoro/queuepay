@@ -2,10 +2,6 @@ package handler
 
 import (
 	"sync"
-
-	"github.com/jackc/pgx/v4/pgxpool"
-
-	"github.com/giusepperoro/queuepay.git/internal/database"
 )
 
 type changeBalanceRequest struct {
@@ -19,16 +15,16 @@ type changeBalanceResponse struct {
 
 type changeBalanceHandler struct {
 	clientsMap sync.Map
-	db         *pgxpool.Pool
 	publisher  queueProducer
+	workerPool workerPool
 	logger     logger
 }
 
-func NewChangeBalanceHandler(logger logger, db *database.DataBase, publisher queueProducer) *changeBalanceHandler {
+func NewChangeBalanceHandler(logger logger, publisher queueProducer, workerPool workerPool) *changeBalanceHandler {
 	return &changeBalanceHandler{
 		clientsMap: sync.Map{},
-		db:         db.Conn,
 		publisher:  publisher,
+		workerPool: workerPool,
 		logger:     logger,
 	}
 }

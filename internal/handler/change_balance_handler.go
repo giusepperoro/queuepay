@@ -24,10 +24,15 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// тут будет поход в RabbitMQ
-	err = h.publisher.PutToQueue(req.Id, req.Amount)
+	err = h.publisher.PutToQueue(r.Context(), req.Id, req.Amount)
 	if err != nil {
 		h.logger.Error("error publishing", zap.Error(err), zap.Int64("clientId", req.Id))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = h.makeConsumer(req.Id)
+	if err != nil {
+		h.logger.Error("unable to create worker", zap.Error(err), zap.Int64("clientId", req.Id))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -39,7 +44,6 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 		response.Status = "error adding transaction in queue"
 	}
 
-	h.addClientInfo(req.Id)
 	rawData, err := json.Marshal(response)
 	_, err = w.Write(rawData)
 	if err != nil {
@@ -47,6 +51,12 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 	}
 }
 
-func (h *changeBalanceHandler) addClientInfo(clientId int64) {
+func (h *changeBalanceHandler) makeConsumer(clientId int64) error {
+	_, ok := h.clientsMap.Load(clientId)
+	if ok {
+		return nil
+	}
+
 	h.clientsMap.Store(clientId, struct{}{})
+	return h.workerPool.RunNewWorker(clientId)
 }

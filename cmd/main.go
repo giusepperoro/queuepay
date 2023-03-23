@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/giusepperoro/queuepay.git/internal/queues"
+	"github.com/giusepperoro/queuepay.git/internal/workers"
 
 	"github.com/giusepperoro/queuepay.git/internal/database"
 
@@ -27,7 +29,7 @@ func main() {
 		log.Fatalf("cannot create logger: %v", err)
 	}
 	defer func() {
-		err = logger.Sync()
+		_ = logger.Sync()
 		if err != nil {
 			log.Fatalf("unable to sync zap logger: %v", err)
 		}
@@ -45,17 +47,21 @@ func main() {
 		log.Fatal("database connect error")
 	}
 
-	rbt, err := queues.CreateQueueManager(cfg, logger)
+	logger.Info("hey its connected")
+	time.Sleep(time.Second * 10)
+	queueManager, err := queues.CreateQueueManager(cfg, logger)
 	if err != nil {
 		log.Println(err)
 		log.Fatal("rabbitMQ connect error")
 	}
 
-	changeBalanceHandle := handler.NewChangeBalanceHandler(logger, db, rbt)
+	workerPool := workers.NewWorkerPool(queueManager, db, logger)
+
+	changeBalanceHandle := handler.NewChangeBalanceHandler(logger, queueManager, workerPool)
 
 	http.HandleFunc("/charge", changeBalanceHandle.HandleBalanceChange)
 	err = http.ListenAndServe(cfg.ServerAddressUrl, nil)
 	if err != nil {
-		log.Fatal("Server shutdown", err)
+		logger.Fatal("server shutdown", zap.String("service URL", cfg.ServerAddressUrl))
 	}
 }

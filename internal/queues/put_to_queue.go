@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"time"
 
 	ampq "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
 
-func (q *QueueManager) PutToQueue(clientId, amount int64) error {
+func (q *QueueManager) PutToQueue(ctx context.Context, clientId, amount int64) error {
 	ch, err := q.client.Channel()
 	if err != nil {
 		q.logger.Error("failed to open channel", zap.Error(err), zap.Int64("client_id", clientId))
@@ -20,21 +19,18 @@ func (q *QueueManager) PutToQueue(clientId, amount int64) error {
 	defer func() {
 		_ = ch.Close() // Закрываем канал в случае удачной попытки открытия
 	}()
-
 	queue, err := ch.QueueDeclare(
-		fmt.Sprintf("%s_%d", topicNamePrefix, clientId), // name
-		false, // durable
-		false, // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
+		q.makeQueueName(clientId),
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		q.logger.Error("failed to  declare a queue", zap.Error(err), zap.Int64("client_id", clientId))
 		return fmt.Errorf("failed to declare a queue: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
 	body := []byte(strconv.FormatInt(amount, 10))
 	err = ch.PublishWithContext(ctx,
@@ -52,5 +48,6 @@ func (q *QueueManager) PutToQueue(clientId, amount int64) error {
 	}
 
 	log.Printf(" [x] Sent %s\n", body)
+
 	return nil
 }
