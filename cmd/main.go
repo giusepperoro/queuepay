@@ -3,20 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/giusepperoro/queuepay.git/internal/database"
-	"github.com/giusepperoro/queuepay.git/internal/rabbit"
 	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
+
+	"github.com/giusepperoro/queuepay.git/internal/queues"
+
+	"github.com/giusepperoro/queuepay.git/internal/database"
 
 	"go.uber.org/zap"
 
 	"github.com/giusepperoro/queuepay.git/internal/config"
 	"github.com/giusepperoro/queuepay.git/internal/handler"
 )
-
-const configFileNameEnv = "CONFIG_FILE_NAME"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -38,12 +38,14 @@ func main() {
 		logger.Fatal("unable to get config file name from env", zap.Error(err))
 	}
 	fmt.Println("cfg:", cfg)
+
 	db, err := database.New(ctx, cfg)
 	if err != nil {
 		log.Println(err)
 		log.Fatal("database connect error")
 	}
-	rbt, err := rabbit.ConnectRabbit(cfg)
+
+	rbt, err := queues.CreateQueueManager(cfg, logger)
 	if err != nil {
 		log.Println(err)
 		log.Fatal("rabbitMQ connect error")

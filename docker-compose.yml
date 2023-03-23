@@ -1,13 +1,15 @@
 version: "3.9"
 services:
-  redis:
-    container_name: "redis"
-    image: "redis:alpine"
-    command: redis-server /usr/local/etc/redis/redis.conf
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
     ports:
-      - "6379:6379"
+      - "15672:15672"
     volumes:
-      - $PWD/configs/redis.conf:/usr/local/etc/redis/redis.conf
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - rabbitmq_go_net
   server:
     container_name: API_server
     build:
@@ -29,3 +31,6 @@ services:
     ports:
       - ${PG_PORT}
       - "${PG_PORT}:${PG_PORT}"
+networks:
+  rabbitmq_go_net:
+    driver: bridge

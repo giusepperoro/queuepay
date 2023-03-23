@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"github.com/giusepperoro/queuepay.git/internal/database"
-	"github.com/giusepperoro/queuepay.git/internal/rabbit"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/rabbitmq/amqp091-go"
 	"sync"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+
+	"github.com/giusepperoro/queuepay.git/internal/database"
 )
 
 type changeBalanceRequest struct {
@@ -20,15 +20,15 @@ type changeBalanceResponse struct {
 type changeBalanceHandler struct {
 	clientsMap sync.Map
 	db         *pgxpool.Pool
-	rbt        *amqp091.Connection
+	publisher  queueProducer
 	logger     logger
 }
 
-func NewChangeBalanceHandler(logger logger, db *database.DataBase, rbt *rabbit.QueueRabbit) *changeBalanceHandler {
+func NewChangeBalanceHandler(logger logger, db *database.DataBase, publisher queueProducer) *changeBalanceHandler {
 	return &changeBalanceHandler{
 		clientsMap: sync.Map{},
 		db:         db.Conn,
-		rbt:        rbt.Client,
+		publisher:  publisher,
 		logger:     logger,
 	}
 }

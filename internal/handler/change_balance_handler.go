@@ -25,6 +25,13 @@ func (h *changeBalanceHandler) HandleBalanceChange(w http.ResponseWriter, r *htt
 	}
 
 	// тут будет поход в RabbitMQ
+	err = h.publisher.PutToQueue(req.Id, req.Amount)
+	if err != nil {
+		h.logger.Error("error publishing", zap.Error(err), zap.Int64("clientId", req.Id))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	response := changeBalanceResponse{
 		Status: "transaction in queue",
 	}
